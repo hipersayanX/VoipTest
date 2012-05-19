@@ -1,0 +1,25 @@
+--- src/src.pro	2012-03-23 11:34:49.000000000 -0300
++++ src/src.pro	2012-05-11 23:34:26.664150055 -0300
+@@ -12,16 +12,16 @@
+ VERSION = $$QXMPP_VERSION
+
+ # To enable support for the Speex audio codec, uncomment the following:
+-# DEFINES += QXMPP_USE_SPEEX
+-# LIBS += -lspeex
++DEFINES += QXMPP_USE_SPEEX
++LIBS += -lspeex
+
+ # To enable support for the Theora video codec, uncomment the following:
+-# DEFINES += QXMPP_USE_THEORA
+-# LIBS += -ltheoradec -ltheoraenc
++DEFINES += QXMPP_USE_THEORA
++LIBS += -ltheoradec -ltheoraenc
+
+ # To enable support for the Vpx video codec, uncomment the following:
+-# DEFINES += QXMPP_USE_VPX
+-# LIBS += -lvpx
++DEFINES += QXMPP_USE_VPX
++LIBS += -lvpx
+
+ # Target definition
+ TARGET = $$QXMPP_LIBRARY_NAME
