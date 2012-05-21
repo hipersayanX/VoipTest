@@ -559,13 +559,13 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                              this,
                              SLOT(writeFrame()));
 
-            QObject::connect(&this->m_timerIngoing,
+            QObject::connect(&this->m_timerIncoming,
                              SIGNAL(timeout()),
                              this,
                              SLOT(readFrames()));
 
             this->m_timerOutgoing.start();
-            this->m_timerIngoing.start();
+            this->m_timerIncoming.start();
         }
     }
     else if (mode == QIODevice::NotOpen)
@@ -577,13 +577,13 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                             this,
                             SLOT(writeFrame()));
 
-        QObject::disconnect(&this->m_timerIngoing,
+        QObject::disconnect(&this->m_timerIncoming,
                             SIGNAL(timeout()),
                             this,
                             SLOT(readFrames()));
 
         this->m_timerOutgoing.stop();
-        this->m_timerIngoing.stop();
+        this->m_timerIncoming.stop();
     }
 }
 

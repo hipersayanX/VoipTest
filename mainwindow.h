@@ -48,7 +48,7 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         QXmppCall *m_call;
         QXmppCallManager m_callManager;
         QTimer m_timerOutgoing;
-        QTimer m_timerIngoing;
+        QTimer m_timerIncoming;
         qint32 m_fps;
         cv::VideoCapture m_webcam;
 
