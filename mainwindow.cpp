@@ -33,11 +33,11 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     this->m_client.addExtension(&this->m_callManager);
 
-    this->m_fps = 30;
+    this->m_fps = 15;
 
-    this->m_timerOutgoing.setInterval(1000.0 / this->m_fps);
+    this->m_timer.setInterval(1000.0 / this->m_fps);
 
-    QObject::connect(&this->m_timerOutgoing,
+    QObject::connect(&this->m_timer,
                      SIGNAL(timeout()),
                      this,
                      SLOT(writeFrame()));
@@ -465,8 +465,12 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
     this->lswRoster->addItems(this->m_roster);
 }
 
-void MainWindow::readFrames()
+void MainWindow::readFrames(const QByteArray &ba)
 {
+    this->m_output.write(ba);
+
+    Q_UNUSED(ba)
+
     foreach (QXmppVideoFrame frame, this->m_call->videoChannel()->readFrames())
     {
         if (!frame.isValid())
@@ -552,38 +556,39 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
         videoFormat.setPixelFormat(QXmppVideoFrame::Format_YUYV);
         this->m_call->videoChannel()->setEncoderFormat(videoFormat);
 
-        if (!this->m_timerOutgoing.isActive())
+        if (!this->m_timer.isActive())
         {
-            QObject::connect(&this->m_timerOutgoing,
+            QObject::connect(&this->m_timer,
                              SIGNAL(timeout()),
                              this,
                              SLOT(writeFrame()));
 
-            QObject::connect(&this->m_timerIncoming,
-                             SIGNAL(timeout()),
+            QObject::connect(this->m_call->videoChannel(),
+                             SIGNAL(sendDatagram(const QByteArray &)),
                              this,
-                             SLOT(readFrames()));
+                             SLOT(readFrames(const QByteArray &)));
 
-            this->m_timerOutgoing.start();
-            this->m_timerIncoming.start();
+            this->m_output.setFileName("output");
+            this->m_output.open(QIODevice::WriteOnly);
+            this->m_timer.start();
         }
     }
     else if (mode == QIODevice::NotOpen)
     {
         this->m_webcam.release();
 
-        QObject::disconnect(&this->m_timerOutgoing,
+        QObject::disconnect(&this->m_timer,
                             SIGNAL(timeout()),
                             this,
                             SLOT(writeFrame()));
 
-        QObject::disconnect(&this->m_timerIncoming,
-                            SIGNAL(timeout()),
+        QObject::disconnect(this->m_call->videoChannel(),
+                            SIGNAL(sendDatagram(const QByteArray &)),
                             this,
-                            SLOT(readFrames()));
+                            SLOT(readFrames(const QByteArray &)));
 
-        this->m_timerOutgoing.stop();
-        this->m_timerIncoming.stop();
+        this->m_output.close();
+        this->m_timer.stop();
     }
 }
 

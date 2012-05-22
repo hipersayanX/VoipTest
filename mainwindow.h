@@ -23,6 +23,8 @@
 #define MAINWINDOW_H
 
 #include <QTimer>
+#include <QFile>
+#include <QProcess>
 #include <QMainWindow>
 #include <QXmppClient.h>
 #include <QXmppRosterManager.h>
@@ -47,10 +49,10 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         QStringList m_roster;
         QXmppCall *m_call;
         QXmppCallManager m_callManager;
-        QTimer m_timerOutgoing;
-        QTimer m_timerIncoming;
+        QTimer m_timer;
         qint32 m_fps;
         cv::VideoCapture m_webcam;
+        QFile m_output;
 
         quint8 clamp(qint32 value);
         quint8 med(quint8 v1, quint8 v2);
@@ -77,7 +79,7 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         void connected();
         void disconnected();
         void presenceChanged(const QString &bareJid, const QString &resource);
-        void readFrames();
+        void readFrames(const QByteArray &ba);
         void rosterReceived();
         void stateChanged(QXmppCall::State state);
         void videoModeChanged(QIODevice::OpenMode mode);
