@@ -23,7 +23,6 @@
 #define MAINWINDOW_H
 
 #include <QTimer>
-#include <QFile>
 #include <QProcess>
 #include <QMainWindow>
 #include <QXmppClient.h>
@@ -52,7 +51,6 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         QTimer m_timer;
         qint32 m_fps;
         cv::VideoCapture m_webcam;
-        QFile m_output;
 
         quint8 clamp(qint32 value);
         quint8 med(quint8 v1, quint8 v2);

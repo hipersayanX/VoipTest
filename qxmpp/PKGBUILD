@@ -12,8 +12,10 @@ md5sums=('17c1d05b1dec3fe8507aae26e05074cb')
 build() {
     curdir="$PWD"
     cp -f ../src.pro.patch "$srcdir/$pkgname-$pkgver"
+    cp -f ../QXmppRtpChannel.cpp.patch "$srcdir/$pkgname-$pkgver"
     cd "$srcdir/$pkgname-$pkgver"
     patch -N -p0 < src.pro.patch
+    patch -N -p0 < QXmppRtpChannel.cpp.patch
     qmake PREFIX=/usr
     make
     make INSTALL_ROOT="$pkgdir" install

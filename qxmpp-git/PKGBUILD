@@ -1,0 +1,19 @@
+pkgrealname=qxmpp
+pkgname=$pkgrealname-git
+pkgver=20120522
+pkgrel=1
+pkgdesc="QXmpp is an xmpp client library based on Qt & C++ (Git version)"
+arch=('i686' 'x86_64')
+url="http://code.google.com/p/qxmpp/"
+license=('LGPL2')
+depends=('qt' 'speex' 'libvpx' 'libtheora')
+makedepends=('git')
+_gitroot='http://code.google.com/p/qxmpp/'
+
+build() {
+    git clone ${_gitroot}
+    cd "$srcdir/$pkgrealname"
+    qmake PREFIX=/usr QXMPP_USE_SPEEX=1 QXMPP_USE_VPX=1 QXMPP_USE_THEORA=1
+    make
+    make INSTALL_ROOT="$pkgdir" install
+}

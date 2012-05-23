@@ -37,6 +37,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     this->m_timer.setInterval(1000.0 / this->m_fps);
 
+    this->m_client.logger()->setLoggingType(QXmppLogger::StdoutLogging);
+    //this->m_client.logger()->setMessageTypes(QXmppLogger::AnyMessage);
+    this->m_client.logger()->setMessageTypes(QXmppLogger::ReceivedMessage);
+
     QObject::connect(&this->m_timer,
                      SIGNAL(timeout()),
                      this,
@@ -328,6 +332,8 @@ void MainWindow::on_btnEndCall_clicked()
 
 void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 {
+    // Audio stops after this->m_call->startVideo(), why?
+
     QXmppRtpAudioChannel *channel = this->m_call->audioChannel();
 
     // prepare audio format
@@ -467,9 +473,56 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
 
 void MainWindow::readFrames(const QByteArray &ba)
 {
-    this->m_output.write(ba);
-
     Q_UNUSED(ba)
+
+    /*
+Jitter: Should discard the packages with a bad sequence, bad time stamp and bad size?
+
+// Notebook <- less noticeable, less latency
+
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14625 stamp 4028 marker 0 type 96 size 1389
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14626 stamp 4028 marker 0 type 96 size 329
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 2044 stamp 326880 marker 0 type 96 size 38
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14627 stamp 4029 marker 0 type 96 size 1389
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14628 stamp 4029 marker 0 type 96 size 1389
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14629 stamp 4029 marker 0 type 96 size 1389
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14630 stamp 4029 marker 0 type 96 size 270
+Wed May 23 11:31:46 2012 RECEIVED RTP packet seq 14631 stamp 4030 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14632 stamp 4030 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14633 stamp 4030 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14634 stamp 4030 marker 0 type 96 size 235
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 2045 stamp 327040 marker 0 type 96 size 38
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14635 stamp 4031 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14636 stamp 4031 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14637 stamp 4031 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14638 stamp 4031 marker 0 type 96 size 112
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14639 stamp 4032 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14640 stamp 4032 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14641 stamp 4032 marker 0 type 96 size 1389
+Wed May 23 11:31:47 2012 RECEIVED RTP packet seq 14642 stamp 4032 marker 0 type 96 size 51
+
+// Netbook <- more noticeable, more latency
+
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2719 stamp 743 marker 0 type 96 size 427
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2720 stamp 744 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2721 stamp 744 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2722 stamp 744 marker 0 type 96 size 896
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2723 stamp 745 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2724 stamp 745 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2725 stamp 745 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2726 stamp 745 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2741 stamp 750 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2742 stamp 750 marker 0 type 96 size 1389
+Wed May 23 13:23:37 2012 RECEIVED RTP packet seq 2743 stamp 750 marker 0 type 96 size 1263
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1294 stamp 206880 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1295 stamp 207040 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1296 stamp 207200 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1297 stamp 207360 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1298 stamp 207520 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1299 stamp 207680 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1300 stamp 207840 marker 0 type 96 size 38
+Wed May 23 13:23:38 2012 RECEIVED RTP packet seq 1301 stamp 208000 marker 0 type 96 size 38
+    */
 
     foreach (QXmppVideoFrame frame, this->m_call->videoChannel()->readFrames())
     {
@@ -568,8 +621,6 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                              this,
                              SLOT(readFrames(const QByteArray &)));
 
-            this->m_output.setFileName("output");
-            this->m_output.open(QIODevice::WriteOnly);
             this->m_timer.start();
         }
     }
@@ -587,7 +638,6 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                             this,
                             SLOT(readFrames(const QByteArray &)));
 
-        this->m_output.close();
         this->m_timer.stop();
     }
 }
