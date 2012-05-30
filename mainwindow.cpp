@@ -36,11 +36,13 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     this->m_fps = 15;
 
     this->m_timer.setInterval(1000.0 / this->m_fps);
+
 /*
     this->m_client.logger()->setLoggingType(QXmppLogger::StdoutLogging);
     //this->m_client.logger()->setMessageTypes(QXmppLogger::AnyMessage);
     this->m_client.logger()->setMessageTypes(QXmppLogger::ReceivedMessage);
 */
+
     QObject::connect(&this->m_timer,
                      SIGNAL(timeout()),
                      this,
