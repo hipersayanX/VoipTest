@@ -1,0 +1,28 @@
+# Packager: hipersayan_x <hipersayan.x@gmail.com>
+
+pkgrealname=qxmpp
+pkgname=$pkgrealname-static-full-git
+pkgver=20120524
+pkgrel=1
+pkgdesc="QXmpp is an xmpp client library based on Qt & C++ (static Git version with Speex, Vpx and Theora support)"
+arch=('i686' 'x86_64')
+url="http://code.google.com/p/qxmpp/"
+license=('LGPL2')
+depends=('qt' 'speex' 'libvpx' 'libtheora')
+makedepends=('git')
+provides=('qxmpp')
+conflicts=('qxmpp')
+_gitroot='http://code.google.com/p/qxmpp/'
+
+build() {
+    git clone ${_gitroot}
+    cd "$srcdir/$pkgrealname"
+    qmake PREFIX=/usr QXMPP_LIBRARY_TYPE=staticlib QXMPP_USE_SPEEX=1 QXMPP_USE_VPX=1 QXMPP_USE_THEORA=1
+    make
+    make docs
+}
+
+package() {
+    cd "$srcdir/$pkgrealname"
+    make INSTALL_ROOT="$pkgdir" install
+}

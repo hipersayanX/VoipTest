@@ -1,0 +1,10 @@
+--- src/base/QXmppCodec.h	2012-02-08 09:51:15.000000000 -0300
++++ src/base/QXmppCodec.h	2012-05-30 16:58:22.000000000 -0300
+@@ -171,6 +171,7 @@
+     bool setParameters(const QMap<QString, QString> &parameters);
+
+ private:
++    QList<quint16> sequenceBuffer;
+     QXmppVpxDecoderPrivate *d;
+ };
+

@@ -1,0 +1,32 @@
+# Packager: hipersayan_x <hipersayan.x@gmail.com>
+
+pkgrealname=qxmpp
+pkgname=$pkgrealname-full
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="QXmpp is an xmpp client library based on Qt & C++ (version with Speex, Vpx and Theora support)"
+arch=('i686' 'x86_64')
+url="http://code.google.com/p/qxmpp/"
+license=('LGPL2')
+depends=('qt' 'speex' 'libvpx' 'libtheora')
+provides=('qxmpp')
+conflicts=('qxmpp')
+source=(http://$pkgrealname.googlecode.com/files/$pkgrealname-$pkgver.tar.gz)
+md5sums=('17c1d05b1dec3fe8507aae26e05074cb')
+
+build() {
+    cp -f ../src.pro.patch "$srcdir/$pkgrealname-$pkgver"
+    cp -f ../QXmppCodec.h.patch "$srcdir/$pkgrealname-$pkgver"
+    cp -f ../QXmppCodec.cpp.patch "$srcdir/$pkgrealname-$pkgver"
+    cd "$srcdir/$pkgrealname-$pkgver"
+    patch -N -p0 < src.pro.patch
+    patch -N -p0 < QXmppCodec.h.patch
+    patch -N -p0 < QXmppCodec.cpp.patch
+    qmake PREFIX=/usr
+    make
+}
+
+package() {
+    cd "$srcdir/$pkgrealname-$pkgver"
+    make INSTALL_ROOT="$pkgdir" install
+}

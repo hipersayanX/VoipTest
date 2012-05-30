@@ -1,0 +1,36 @@
+--- src/base/QXmppCodec.cpp	2012-02-08 09:51:15.000000000 -0300
++++ src/base/QXmppCodec.cpp	2012-05-30 16:58:22.000000000 -0300
+@@ -1041,11 +1041,32 @@
+             stream.readRawData(d->packetBuffer.data() + packetPos, packetLength);
+         }
+
++        sequenceBuffer << packet.sequence;
++
+         if (frag_type == EndFragment) {
++            bool fst = true;
++            bool decode = true;
++            quint16 seq;
++
++            foreach (quint16 sequence, sequenceBuffer) {
++                if (fst) {
++                    seq = sequence;
++                    fst = false;
++                }
++                else if (sequence != seq) {
++                    decode = false;
++
++                    break;
++                }
++
++                ++seq;
++            }
++
+             // end fragment
+-            if (d->decodeFrame(d->packetBuffer, &frame))
++            if (decode && d->decodeFrame(d->packetBuffer, &frame))
+                 frames << frame;
+             d->packetBuffer.resize(0);
++            sequenceBuffer.clear();
+         }
+
+     }
