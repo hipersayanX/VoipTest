@@ -1,10 +1,28 @@
 --- src/base/QXmppCodec.cpp	2012-02-08 09:51:15.000000000 -0300
-+++ src/base/QXmppCodec.cpp	2012-05-30 16:58:22.000000000 -0300
-@@ -1041,11 +1041,32 @@
++++ src/base/QXmppCodec.cpp	2012-06-05 12:47:52.329729741 -0300
+@@ -981,6 +981,7 @@
+ QXmppVpxDecoder::QXmppVpxDecoder()
+ {
+     d = new QXmppVpxDecoderPrivate;
++    startDecodeFlag = false;
+     if (vpx_codec_dec_init(&d->codec, vpx_codec_vp8_dx(), NULL, 0) != VPX_CODEC_OK) {
+         qWarning("Vpx decoder could not be initialised");
+     }
+@@ -1034,6 +1035,8 @@
+         if (frag_type == StartFragment) {
+             // start fragment
+             d->packetBuffer = packet.payload.mid(1);
++            startDecodeFlag = true;
++            sequenceBuffer.clear();
+         } else {
+             // continuation or end fragment
+             const int packetPos = d->packetBuffer.size();
+@@ -1041,11 +1044,34 @@
              stream.readRawData(d->packetBuffer.data() + packetPos, packetLength);
          }
 
-+        sequenceBuffer << packet.sequence;
++        if (startDecodeFlag)
++            sequenceBuffer << packet.sequence;
 +
          if (frag_type == EndFragment) {
 +            bool fst = true;
@@ -27,9 +45,10 @@
 +
              // end fragment
 -            if (d->decodeFrame(d->packetBuffer, &frame))
-+            if (decode && d->decodeFrame(d->packetBuffer, &frame))
++            if (startDecodeFlag && decode && d->decodeFrame(d->packetBuffer, &frame))
                  frames << frame;
              d->packetBuffer.resize(0);
++            startDecodeFlag = false;
 +            sequenceBuffer.clear();
          }
 
