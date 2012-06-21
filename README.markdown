@@ -1,4 +1,4 @@
-# VopiTest, Video call test with QXmpp #
+# VoipTest, Video call test with QXmpp #
 
 ## Intro ##
 

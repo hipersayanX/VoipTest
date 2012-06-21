@@ -49,9 +49,9 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         QXmppCall *m_call;
         QXmppCallManager m_callManager;
         QTimer m_timer;
-        qint32 m_fps;
         cv::VideoCapture m_webcam;
 
+        // Methods for converting between RGB <=> YUV.
         quint8 clamp(qint32 value);
         quint8 med(quint8 v1, quint8 v2);
         quint8 rgb2y(quint8 r, quint8 g, quint8 b);
@@ -61,6 +61,8 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         qint32 yuv2r(quint8 y, quint8 u, quint8 v);
         qint32 yuv2g(quint8 y, quint8 u, quint8 v);
         qint32 yuv2b(quint8 y, quint8 u, quint8 v);
+
+        // Convertion between QXmpp <=> Qt image format.
         QXmppVideoFrame imageToVideoFrame(const QImage &image);
         QImage videoFrameToImage(const QXmppVideoFrame &videoFrame);
 
@@ -77,8 +79,7 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         void connected();
         void disconnected();
         void presenceChanged(const QString &bareJid, const QString &resource);
-        void readFrames(const QByteArray &ba);
-        void rosterReceived();
+        void readFrames();
         void stateChanged(QXmppCall::State state);
         void videoModeChanged(QIODevice::OpenMode mode);
         void writeFrame();

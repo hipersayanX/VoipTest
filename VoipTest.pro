@@ -17,8 +17,6 @@
 # Email   : hipersayan DOT x AT gmail DOT com
 # Web-Site: http://hipersayanx.blogspot.com/
 
-DEFINES += QXMPP_USE_SPEEX QXMPP_USE_VPX QXMPP_USE_THEORA
-
 FORMS += mainwindow.ui
 
 HEADERS += mainwindow.h

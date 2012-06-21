@@ -26,22 +26,34 @@
 
 #include "mainwindow.h"
 
+// TODO 1: QXmpp doesn't support jitter buffer and Forward Error Correction algorthms (FEC).
+// For that reason, occasionally, could suffer a severe image degradation:
+//
+// https://groups.google.com/group/qxmpp/browse_thread/thread/88f6511d957c0074
+//
+// It can be fixed by implementing parity packets and packet interleaving:
+//
+// http://medusa.sdsu.edu/network/CS596/Lectures/ch28_RT.pdf
+// https://code.google.com/p/webrtc/source/browse/trunk/src/modules/rtp_rtcp/source/forward_error_correction.h
+// https://tools.ietf.org/html/rfc5109
+//
+// Also this Reed-Solomon encoder/decoder can be very helpfull (I'm translating this source code to Qt/C++ right now):
+//
+// https://github.com/brownan/Reed-Solomon
+//
+// TODO 2: Audio stops after "Got a buffer underflow!" message received.
+//
+// https://bugreports.qt-project.org/browse/QTMOBILITY-1948
+
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
     this->setupUi(this);
     this->m_call = NULL;
 
+    // Add the extention for Jingle (Voice/Video calls).
     this->m_client.addExtension(&this->m_callManager);
 
-    this->m_fps = 15;
-
-    this->m_timer.setInterval(1000.0 / this->m_fps);
-
-/*
-    this->m_client.logger()->setLoggingType(QXmppLogger::StdoutLogging);
-    //this->m_client.logger()->setMessageTypes(QXmppLogger::AnyMessage);
-    this->m_client.logger()->setMessageTypes(QXmppLogger::ReceivedMessage);
-*/
+    this->m_timer.setInterval(1);
 
     QObject::connect(&this->m_timer,
                      SIGNAL(timeout()),
@@ -57,11 +69,6 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
                      SIGNAL(disconnected()),
                      this,
                      SLOT(disconnected()));
-
-    QObject::connect(&this->m_client.rosterManager(),
-                     SIGNAL(rosterReceived()),
-                     this,
-                     SLOT(rosterReceived()));
 
     QObject::connect(&this->m_client.rosterManager(),
                      SIGNAL(presenceChanged(const QString &, const QString &)),
@@ -94,6 +101,7 @@ void MainWindow::changeEvent(QEvent *e)
     }
 }
 
+// https://en.wikipedia.org/wiki/YUV {
 inline quint8 MainWindow::clamp(qint32 value)
 {
     return (uchar) ((value > 255)? 255: ((value < 0)? 0: value));
@@ -248,9 +256,11 @@ QImage MainWindow::videoFrameToImage(const QXmppVideoFrame &videoFrame)
 
     return image;
 }
+// }
 
 void MainWindow::on_btnConnect_clicked()
 {
+    // Login (username@server.org, password)
     this->m_client.connectToServer(this->txtUser->text(), this->txtPassword->text());
 }
 
@@ -261,6 +271,7 @@ void MainWindow::on_btnCall_clicked()
     if (jids.isEmpty())
         return;
 
+    // Call to contact as otherusername@server.org/resource
     this->m_call = this->m_callManager.call(jids[0]->text());
 
     QObject::connect(this->m_call,
@@ -298,6 +309,7 @@ void MainWindow::on_btnEndCall_clicked()
 {
     if (this->m_call)
     {
+        // Hangup call.
         this->m_call->hangup();
 
         QObject::disconnect(this->m_call,
@@ -334,8 +346,6 @@ void MainWindow::on_btnEndCall_clicked()
 
 void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 {
-    // Audio stops after this->m_call->startVideo(), why?
-
     QXmppRtpAudioChannel *channel = this->m_call->audioChannel();
 
     // prepare audio format
@@ -351,6 +361,7 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
     // the size in bytes of the audio buffers to/from sound devices
     // 160 ms seems to be the minimum to work consistently on Linux/Mac/Windows
     const int bufferSize = (format.frequency() * format.channels() * (format.sampleSize() / 8) * 160) / 1000;
+    qDebug() << "bufferSize" << bufferSize;
 
     if (mode & QIODevice::ReadOnly)
     {
@@ -373,6 +384,8 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 
 void MainWindow::callConnected()
 {
+    // Only caller or receiver can start a video call, but not both
+    // at same time.
     if (this->m_call->direction() == QXmppCall::OutgoingDirection)
         this->m_call->startVideo();
 
@@ -424,9 +437,11 @@ void MainWindow::callReceived(QXmppCall *call)
                          this,
                          SLOT(videoModeChanged(QIODevice::OpenMode)));
 
+        // Accept call.
         call->accept();
     }
     else
+        // Cancel call.
         call->hangup();
 }
 
@@ -437,6 +452,7 @@ void MainWindow::callStarted(QXmppCall *call)
 
 void MainWindow::connected()
 {
+    // Update user status.
     this->lblStatus->setText("Connected");
     this->m_client.clientPresence().setType(QXmppPresence::Available);
 }
@@ -450,6 +466,7 @@ void MainWindow::disconnected()
 
 void MainWindow::presenceChanged(const QString &bareJid, const QString &resource)
 {
+    // Get contacts list.
     QStringList roster = this->m_client.rosterManager().getRosterBareJids();
 
     if (!roster.contains(bareJid))
@@ -458,6 +475,7 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
     QXmppPresence presence = this->m_client.rosterManager().getPresence(bareJid, resource);
     QString jid = bareJid + "/" + resource;
 
+    // Only show connected friends.
     if (presence.status().type() == QXmppPresence::Status::Online)
     {
         if (!this->m_roster.contains(jid))
@@ -473,10 +491,8 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
     this->lswRoster->addItems(this->m_roster);
 }
 
-void MainWindow::readFrames(const QByteArray &ba)
+void MainWindow::readFrames()
 {
-    Q_UNUSED(ba)
-
     foreach (QXmppVideoFrame frame, this->m_call->videoChannel()->readFrames())
     {
         if (!frame.isValid())
@@ -485,10 +501,6 @@ void MainWindow::readFrames(const QByteArray &ba)
         const QImage image = this->videoFrameToImage(frame);
         this->lblIncomingFrame->setPixmap(QPixmap::fromImage(image));
     }
-}
-
-void MainWindow::rosterReceived()
-{
 }
 
 void MainWindow::stateChanged(QXmppCall::State state)
@@ -523,8 +535,11 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
     {
         QXmppVideoFormat videoFormat;
 
+        // Open the webcam.
         this->m_webcam.open(this->cbxWebcam->currentIndex());
 
+        // QXmpp uses this defaults formats for Encoder/Decoder:
+        //
         // Default Decoder Format
         // {
         //     frameRate =  15
@@ -539,13 +554,11 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
         //     pixelFormat =  21
         // }
 
-        videoFormat.setFrameRate(this->m_fps);
+        videoFormat.setFrameRate(30);
         videoFormat.setFrameSize(QSize(this->m_webcam.get(CV_CAP_PROP_FRAME_WIDTH),
                                        this->m_webcam.get(CV_CAP_PROP_FRAME_HEIGHT)));
 
-        // Vpx    -> QXmppVideoFrame::Format_YUYV
-        // Theora -> QXmppVideoFrame::Format_YUV420P
-        //           QXmppVideoFrame::Format_YUYV
+        // QXmpp allow the following pixel formats for video encoding:
         //
         // PixelFormat
         // {
@@ -556,8 +569,18 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
         //     Format_UYVY = 20,
         //     Format_YUYV = 21
         // }
+        //
+        // QXmpp can be compiled with Vp8 and Theora support.
+        // The encoding formats supported by this codecs are:
+        //
+        // Vpx    -> QXmppVideoFrame::Format_YUYV
+        //
+        // Theora -> QXmppVideoFrame::Format_YUV420P
+        //           QXmppVideoFrame::Format_YUYV
 
         videoFormat.setPixelFormat(QXmppVideoFrame::Format_YUYV);
+
+        // Change default Encoder Format.
         this->m_call->videoChannel()->setEncoderFormat(videoFormat);
 
         if (!this->m_timer.isActive())
@@ -567,10 +590,10 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                              this,
                              SLOT(writeFrame()));
 
-            QObject::connect(this->m_call->videoChannel(),
-                             SIGNAL(sendDatagram(const QByteArray &)),
+            QObject::connect(&this->m_timer,
+                             SIGNAL(timeout()),
                              this,
-                             SLOT(readFrames(const QByteArray &)));
+                             SLOT(readFrames()));
 
             this->m_timer.start();
         }
@@ -584,10 +607,10 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
                             this,
                             SLOT(writeFrame()));
 
-        QObject::disconnect(this->m_call->videoChannel(),
-                            SIGNAL(sendDatagram(const QByteArray &)),
+        QObject::disconnect(&this->m_timer,
+                            SIGNAL(timeout()),
                             this,
-                            SLOT(readFrames(const QByteArray &)));
+                            SLOT(readFrames()));
 
         this->m_timer.stop();
     }
@@ -603,7 +626,14 @@ void MainWindow::writeFrame()
     this->m_webcam >> mat;
 
     QImage imageBGR((const uchar *)mat.data, mat.cols, mat.rows, QImage::Format_RGB888);
+
+    // OpenCV swaps Red and Blue components.
     QImage imageRGB = imageBGR.rgbSwapped();
+
+    QSize encoderFrameSize = this->m_call->videoChannel()->encoderFormat().frameSize();
+
+    if (imageRGB.size() != encoderFrameSize)
+        imageRGB = imageRGB.scaled(encoderFrameSize);
 
     const QXmppVideoFrame frame = this->imageToVideoFrame(imageRGB);
 

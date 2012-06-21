@@ -16,12 +16,8 @@ md5sums=('17c1d05b1dec3fe8507aae26e05074cb')
 
 build() {
     cp -f ../src.pro.patch "$srcdir/$pkgrealname-$pkgver"
-    cp -f ../QXmppCodec.h.patch "$srcdir/$pkgrealname-$pkgver"
-    cp -f ../QXmppCodec.cpp.patch "$srcdir/$pkgrealname-$pkgver"
     cd "$srcdir/$pkgrealname-$pkgver"
     patch -N -p0 < src.pro.patch
-    patch -N -p0 < QXmppCodec.h.patch
-    patch -N -p0 < QXmppCodec.cpp.patch
     qmake PREFIX=/usr
     make
 }
