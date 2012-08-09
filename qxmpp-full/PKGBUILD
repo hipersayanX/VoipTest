@@ -2,7 +2,7 @@
 
 pkgrealname=qxmpp
 pkgname=$pkgrealname-full
-pkgver=0.4.0
+pkgver=0.6.3
 pkgrel=1
 pkgdesc="QXmpp is an xmpp client library based on Qt & C++ (version with Speex, Vpx and Theora support)"
 arch=('i686' 'x86_64')
@@ -12,14 +12,13 @@ depends=('qt' 'speex' 'libvpx' 'libtheora')
 provides=('qxmpp')
 conflicts=('qxmpp')
 source=(http://$pkgrealname.googlecode.com/files/$pkgrealname-$pkgver.tar.gz)
-md5sums=('17c1d05b1dec3fe8507aae26e05074cb')
+md5sums=('836acc2ee413329bc15ffd48a9c0fe42')
 
 build() {
-    cp -f ../src.pro.patch "$srcdir/$pkgrealname-$pkgver"
     cd "$srcdir/$pkgrealname-$pkgver"
-    patch -N -p0 < src.pro.patch
-    qmake PREFIX=/usr
+    qmake PREFIX=/usr QXMPP_USE_SPEEX=1 QXMPP_USE_VPX=1 QXMPP_USE_THEORA=1
     make
+    make docs
 }
 
 package() {
