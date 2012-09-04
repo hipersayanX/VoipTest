@@ -6,7 +6,7 @@ Small video call test program using [QXmpp](http://code.google.com/p/qxmpp/).
 
 ## Compiling ##
 
-You must compile and install the latest version of [QXmpp](http://code.google.com/p/qxmpp/) (0.4.0) with Speex, Vpx and Theora codecs support.  
+You must compile and install the latest version of [QXmpp](http://code.google.com/p/qxmpp/) (0.7.1) with Speex, Vpx and Theora codecs support.  
 For ArchLinux users, three PKGBUILD are provided:
 
 * __qxmpp-full__: Version with Speex, Vpx and Theora support.
