@@ -1,7 +1,7 @@
 # Maintainer: hipersayan_x <hipersayan.x@gmail.com>
 pkgrealname=qxmpp
 pkgname=$pkgrealname-static-full
-pkgver=0.7.1
+pkgver=0.7.3
 pkgrel=1
 pkgdesc="QXmpp is an xmpp client library based on Qt & C++ (static version with Speex, Vpx and Theora support)"
 arch=('i686' 'x86_64')
