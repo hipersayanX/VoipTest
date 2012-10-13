@@ -1,0 +1,1 @@
+STATIC_QXMPP=1

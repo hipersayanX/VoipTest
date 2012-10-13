@@ -17,32 +17,9 @@
 # Email   : hipersayan DOT x AT gmail DOT com
 # Web-Site: http://hipersayanx.blogspot.com/
 
-DEFINES += QXMPP_LIBRARY_TYPE=staticlib QXMPP_USE_SPEEX=1 QXMPP_USE_VPX=1 QXMPP_USE_THEORA=1
+TEMPLATE = subdirs
 
-include(qxmpp-src/qxmpp.pro)
+CONFIG += ordered
 
-LIBS += -L./qxmpp-src/src -lqxmpp
-
-INCLUDEPATH = \
-              qxmpp-src/src/base \
-              qxmpp-src/src/client \
-              qxmpp-src/src/server
-
-FORMS += mainwindow.ui
-
-HEADERS += mainwindow.h
-
-QT += core gui network xml multimedia
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-SOURCES += main.cpp\
-           mainwindow.cpp
-
-TARGET = VoipTest
-TEMPLATE = app
-
-unix {
-    CONFIG += link_pkgconfig
-    PKGCONFIG += speex vpx theoradec theoraenc opencv
-}
+SUBDIRS += qxmpp-src/qxmpp.pro \
+           VoipTest.pro
