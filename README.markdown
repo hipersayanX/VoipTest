@@ -6,7 +6,7 @@ Small video call test program using [QXmpp](http://code.google.com/p/qxmpp/).
 
 ## Compiling ##
 
-You must compile and install the latest version of [QXmpp](http://code.google.com/p/qxmpp/) (0.7.3) with Speex, Vpx and Theora codecs support.  
+You must compile and install the latest version of [QXmpp](http://code.google.com/p/qxmpp/) (0.7.6) with Speex, Vpx and Theora codecs support.  
 For ArchLinux users, three PKGBUILD are provided:
 
 * __qxmpp-full__: Version with Speex, Vpx and Theora support.
@@ -21,4 +21,4 @@ You can install one of these with:
 Also you must install [OpenCV](http://opencv.willowgarage.com/wiki/).  
 To compile and run VoipTest:
 
-    qmake && make
+    qmake-qt4 VoipTest.pro && make

@@ -33,14 +33,16 @@ SOURCES += main.cpp\
 TARGET = VoipTest
 TEMPLATE = app
 
-!isEmpty(STATIC_QXMPP){
+!isEmpty(STATIC_QXMPP) {
     LIBS += -L./qxmpp-src/src -lqxmpp
 
-    INCLUDEPATH = \
+    INCLUDEPATH += \
                 qxmpp-src/src/base \
                 qxmpp-src/src/client \
                 qxmpp-src/src/server
 }
+
+INCLUDEPATH += /usr/include/qxmpp
 
 unix {
     CONFIG += link_pkgconfig
