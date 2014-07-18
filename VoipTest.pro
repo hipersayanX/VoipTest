@@ -17,8 +17,6 @@
 # Email   : hipersayan DOT x AT gmail DOT com
 # Web-Site: http://hipersayanx.blogspot.com/
 
-include(VoipTest.pri)
-
 FORMS += mainwindow.ui
 
 HEADERS += mainwindow.h
@@ -33,23 +31,14 @@ SOURCES += main.cpp\
 TARGET = VoipTest
 TEMPLATE = app
 
-!isEmpty(STATIC_QXMPP) {
-    LIBS += -L./qxmpp-src/src -lqxmpp
+unix {
+    INCLUDEPATH += /usr/include/qxmpp
 
-    INCLUDEPATH += \
-                qxmpp-src/src/base \
-                qxmpp-src/src/client \
-                qxmpp-src/src/server
+    CONFIG += link_pkgconfig
+    PKGCONFIG += speex vpx theoradec theoraenc qxmpp opencv
 }
 
-INCLUDEPATH += /usr/include/qxmpp
-
-unix {
-    CONFIG += link_pkgconfig
-
-    isEmpty(STATIC_QXMPP){
-        PKGCONFIG += qxmpp
-    }
-
-    PKGCONFIG += speex vpx theoradec theoraenc opencv
+win32 {
+    INCLUDEPATH += win32/include/qxmpp
+    LIBS += -Lwin32/lib -lqxmpp
 }
