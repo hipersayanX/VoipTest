@@ -351,8 +351,8 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
     // prepare audio format
     QAudioFormat format;
 
-    format.setFrequency(channel->payloadType().clockrate());
-    format.setChannels(channel->payloadType().channels());
+    format.setSampleRate(channel->payloadType().clockrate());
+    format.setChannelCount(channel->payloadType().channels());
     format.setSampleSize(16);
     format.setCodec("audio/pcm");
     format.setByteOrder(QAudioFormat::LittleEndian);
@@ -360,7 +360,7 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 
     // the size in bytes of the audio buffers to/from sound devices
     // 160 ms seems to be the minimum to work consistently on Linux/Mac/Windows
-    const int bufferSize = (format.frequency() * format.channels() * (format.sampleSize() / 8) * 160) / 1000;
+    const int bufferSize = (format.sampleRate() * format.channelCount() * (format.sampleSize() / 8) * 160) / 1000;
     qDebug() << "bufferSize" << bufferSize;
 
     if (mode & QIODevice::ReadOnly)
@@ -476,7 +476,7 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
     QString jid = bareJid + "/" + resource;
 
     // Only show connected friends.
-    if (presence.status().type() == QXmppPresence::Status::Online)
+    if (presence.availableStatusType() == QXmppPresence::Online)
     {
         if (!this->m_roster.contains(jid))
             this->m_roster << jid;

@@ -31,14 +31,25 @@ SOURCES += main.cpp\
 TARGET = VoipTest
 TEMPLATE = app
 
+INCLUDEPATH += \
+    qxmpp/src/base \
+    qxmpp/src/client
+
+LIBS += -L./qxmpp/src -lqxmpp
+
 unix {
-    INCLUDEPATH += /usr/include/qxmpp
-
     CONFIG += link_pkgconfig
-    PKGCONFIG += speex vpx theoradec theoraenc qxmpp opencv
+    PKGCONFIG += speex vpx theoradec theoraenc opencv
 }
 
-win32 {
-    INCLUDEPATH += win32/include/qxmpp
-    LIBS += -Lwin32/lib -lqxmpp
-}
+#unix {
+#    INCLUDEPATH += /usr/include/qxmpp
+
+#    CONFIG += link_pkgconfig
+#    PKGCONFIG += speex vpx theoradec theoraenc qxmpp opencv
+#}
+
+#win32 {
+#    INCLUDEPATH += win32/include/qxmpp
+#    LIBS += -Lwin32/lib -lqxmpp
+#}
