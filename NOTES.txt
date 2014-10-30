@@ -1,0 +1,63 @@
+Analisis of FEC
+===============
+
+Stream corruption can be solved with 3 changes:
+
+- Spliting the main thread (program), packet reading thread, and packet decoding threads.
+- Reducing the GOP (Group Of Frames) size, increasing the number of key frames.
+- Shuffling the packets to reduce the probability of loosing a group of continuous packets.
+
+For the approach:
+
+All audio and video packets are received and decoded here:
+
+    qxmpp/src/base/QXmppRtpChannel.h:
+
+        QXmppRtpAudioChannel::datagramReceived(const QByteArray &ba);
+        QXmppRtpVideoChannel::datagramReceived(const QByteArray &ba);
+
+'datagramReceived' is a slot that is called from here:
+
+    qxmpp/src/client/QXmppCallManager.cpp:
+
+        QXmppCallPrivate::createStream(const QString &media)
+
+It starts creating an stream channel and an 'IceConnection':
+
+        // RTP channel
+        // ICE connection
+
+And finally creates an 'IceComponent' and connects it's 'datagramReceived' signal to the channel:
+
+        QXmppIceComponent *rtpComponent = stream->connection->component(RTP_COMPONENT);
+
+        check = QObject::connect(rtpComponent, SIGNAL(datagramReceived(QByteArray)),
+                        channelObject, SLOT(datagramReceived(QByteArray)));
+
+'datagramReceived' is emited from here:
+
+    src/base/QXmppStun.cpp:
+
+        QXmppIceComponent::handleDatagram(const QByteArray &buffer, const QHostAddress &remoteHost, quint16 remotePort, QUdpSocket *socket)
+
+Then 'handleDatagram' is called from here:
+
+        QXmppIceComponent::readyRead()
+
+or conected to a 'TurnAllocation' object, here:
+
+        check = connect(m_turnAllocation, SIGNAL(datagramReceived(QByteArray,QHostAddress,quint16)),
+                this, SLOT(handleDatagram(QByteArray,QHostAddress,quint16)));
+
+in both cases, the raw datagrams are readed from an 'QUdpSocket' here:
+
+        socket->readDatagram(buffer.data(), buffer.size(), &remoteHost, &remotePort);
+
+throght a 'readyRead' slot here:
+
+        QXmppTurnAllocation::readyRead()
+        QXmppIceComponent::readyRead()
+
+Knowing that, we must create a datagram reading thread, a thread for each channel, and a datagram buffer.
+
+The question is where to create the datagram buffer and how the transfer the datagrams with this new scheme.
