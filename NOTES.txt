@@ -7,7 +7,8 @@ Stream corruption can be solved with 3 changes:
 - Reducing the GOP (Group Of Frames) size, increasing the number of key frames.
 - Shuffling the packets to reduce the probability of loosing a group of continuous packets.
 
-For the approach:
+Jitter Buffer
+=============
 
 All audio and video packets are received and decoded here:
 
@@ -60,4 +61,37 @@ throght a 'readyRead' slot here:
 
 Knowing that, we must create a datagram reading thread, a thread for each channel, and a datagram buffer.
 
-The question is where to create the datagram buffer and how the transfer the datagrams with this new scheme.
+Media playing pipeline
+=====================
+
+For smooth Audio/Video rendering, the following scheme is recomended.
+
+                           ________________      --------------------      ________________      --------------
+                          |                |    |                    |    |                |    |              |
+                         /| Audio Buffer 1 |--->| Uncompress/Convert |--->| Audio Buffer 2 |--->| Sync/Present |
+     -----------------  / |________________|    |         ThPA       |    |________________|    |    ThQA      |
+    | Packets Reading |/                         --------------------                            --------------
+    |       ThR       |\
+     -----------------  \  ________________      --------------------      ________________      --------------
+                         \|                |    |                    |    |                |    |              |
+                          | Video Buffer 1 |--->| Uncompress/Convert |--->| Video Buffer 2 |--->| Sync/Present |
+                          |________________|    |         ThPV       |    |________________|    |    ThQV      |
+                                                 --------------------                            --------------
+
+A common rule is that ThQV is equal to the main thread. See:
+
+https://github.com/FFmpeg/FFmpeg/blob/master/ffplay.c
+
+Creating a Decoding Thread
+==========================
+
+'QUdpSocket' runs in the main thread but it doesn't seems to be affected at all by lightweight tasks. Also moving a socket to it's own thread seems to be troublesome.
+For video streams, the most probable case is that QXmppRtpVideoChannel::readFrames() will be called from the main thread, and we aren't in control of that.
+In QXmpp, based in the previous presented scheme: ThR == ThQA == ThQV == main thread, So the best we can do is to isolate ThPA and ThPV in it's own thread, that is deconding the incomming packets in a separated thread. The following packet decoding scheme is recommended:
+
+                _______________                         ______________
+     -----     |               |     -------------     |              |     -----
+    | ThR |--->| Packet Buffer |--->| Decoding Th |--->| Frame Buffer |--->| ThQ |
+     -----     |_______________|     -------------     |______________|     -----
+
+A packet buffer and a decoding thread is added to QXmppRtpVideoChannelPrivate class. Since the system uses a RTP, circular buffers are recommended.

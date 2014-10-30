@@ -361,7 +361,6 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
     // the size in bytes of the audio buffers to/from sound devices
     // 160 ms seems to be the minimum to work consistently on Linux/Mac/Windows
     const int bufferSize = (format.sampleRate() * format.channelCount() * (format.sampleSize() / 8) * 160) / 1000;
-    qDebug() << "bufferSize" << bufferSize;
 
     if (mode & QIODevice::ReadOnly)
     {
