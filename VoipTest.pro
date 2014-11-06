@@ -35,7 +35,7 @@ INCLUDEPATH += \
     qxmpp/src/base \
     qxmpp/src/client
 
-LIBS += -L./qxmpp/src -lqxmpp
+LIBS += -L./qxmpp/src -lqxmpp_d
 
 unix {
     CONFIG += link_pkgconfig

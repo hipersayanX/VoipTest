@@ -26,24 +26,13 @@
 
 #include "mainwindow.h"
 
-// TODO 1: QXmpp doesn't support jitter buffer and Forward Error Correction algorthms (FEC).
-// For that reason, occasionally, could suffer a severe image degradation:
-//
-// https://groups.google.com/group/qxmpp/browse_thread/thread/88f6511d957c0074
-//
-// It can be fixed by implementing parity packets and packet interleaving:
-//
-// http://medusa.sdsu.edu/network/CS596/Lectures/ch28_RT.pdf
-// https://code.google.com/p/webrtc/source/browse/trunk/src/modules/rtp_rtcp/source/forward_error_correction.h
-// https://tools.ietf.org/html/rfc5109
-//
-// Also this Reed-Solomon encoder/decoder can be very helpfull (I'm translating this source code to Qt/C++ right now):
-//
-// https://github.com/brownan/Reed-Solomon
-//
 // TODO 2: Audio stops after "Got a buffer underflow!" message received.
 //
 // https://bugreports.qt-project.org/browse/QTMOBILITY-1948
+// Qt4 related bug
+
+// http://bloggeek.me/single-voice-codec-webrtc/
+// http://www.opus-codec.org/presentations/opus_voice_aes135.pdf
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
@@ -327,7 +316,7 @@ void MainWindow::on_btnEndCall_clicked()
                             this,
                             SLOT(stateChanged(QXmppCall::State)));
 
-        QObject::disconnect(this->m_call,
+z        QObject::disconnect(this->m_call,
                             SIGNAL(audioModeChanged(QIODevice::OpenMode)),
                             this,
                             SLOT(audioModeChanged(QIODevice::OpenMode)));
@@ -348,35 +337,31 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 {
     QXmppRtpAudioChannel *channel = this->m_call->audioChannel();
 
-    // prepare audio format
-    QAudioFormat format;
-
-    format.setSampleRate(channel->payloadType().clockrate());
-    format.setChannelCount(channel->payloadType().channels());
-    format.setSampleSize(16);
-    format.setCodec("audio/pcm");
-    format.setByteOrder(QAudioFormat::LittleEndian);
-    format.setSampleType(QAudioFormat::SignedInt);
-
-    // the size in bytes of the audio buffers to/from sound devices
-    // 160 ms seems to be the minimum to work consistently on Linux/Mac/Windows
-    const int bufferSize = (format.sampleRate() * format.channelCount() * (format.sampleSize() / 8) * 160) / 1000;
-
     if (mode & QIODevice::ReadOnly)
     {
+        QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultOutputDevice();
+        QAudioFormat format = deviceInfo.preferredFormat();
+        format.setSampleRate(channel->payloadType().clockrate());
+        format.setChannelCount(channel->payloadType().channels());
+        format = deviceInfo.nearestFormat(format);
+
         // initialise audio output
         QAudioOutput *audioOutput = new QAudioOutput(format, this);
 
-        audioOutput->setBufferSize(bufferSize);
         audioOutput->start(channel);
     }
 
     if (mode & QIODevice::WriteOnly)
     {
+        QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultInputDevice();
+        QAudioFormat format = deviceInfo.preferredFormat();
+        format.setSampleRate(channel->payloadType().clockrate());
+        format.setChannelCount(channel->payloadType().channels());
+        format = deviceInfo.nearestFormat(format);
+
         // initialise audio input
         QAudioInput *audioInput = new QAudioInput(format, this);
 
-        audioInput->setBufferSize(bufferSize);
         audioInput->start(channel);
     }
 }
@@ -624,7 +609,7 @@ void MainWindow::writeFrame()
 
     this->m_webcam >> mat;
 
-    QImage imageBGR((const uchar *)mat.data, mat.cols, mat.rows, QImage::Format_RGB888);
+    QImage imageBGR((const uchar *) mat.data, mat.cols, mat.rows, QImage::Format_RGB888);
 
     // OpenCV swaps Red and Blue components.
     QImage imageRGB = imageBGR.rgbSwapped();
