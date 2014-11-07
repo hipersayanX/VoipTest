@@ -21,8 +21,6 @@
 
 #include <QDebug>
 #include <QMessageBox>
-#include <QAudioInput>
-#include <QAudioOutput>
 
 #include "mainwindow.h"
 
@@ -38,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
     this->setupUi(this);
     this->m_call = NULL;
+    this->m_audioOutput = NULL;
+    this->m_audioInput = NULL;
 
     // Add the extention for Jingle (Voice/Video calls).
     this->m_client.addExtension(&this->m_callManager);
@@ -75,12 +75,16 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
                      SLOT(callStarted(QXmppCall *)));
 }
 
+MainWindow::~MainWindow()
+{
+    this->callFinished();
+}
+
 void MainWindow::changeEvent(QEvent *e)
 {
     QMainWindow::changeEvent(e);
 
-    switch (e->type())
-    {
+    switch (e->type()) {
         case QEvent::LanguageChange:
             this->retranslateUi(this);
         break;
@@ -150,8 +154,7 @@ QXmppVideoFrame MainWindow::imageToVideoFrame(const QImage &image)
     const quint8 *iBits = (const quint8 *) image.bits();
     quint8 *oBits = (quint8 *) videoFrame.bits();
 
-    for (qint32 i = 0; i < 3 * image.width() * image.height(); i += 6)
-    {
+    for (qint32 i = 0; i < 3 * image.width() * image.height(); i += 6) {
         quint8 r1 = iBits[i];
         quint8 g1 = iBits[i + 1];
         quint8 b1 = iBits[i + 2];
@@ -187,11 +190,9 @@ QImage MainWindow::videoFrameToImage(const QXmppVideoFrame &videoFrame)
     quint8 *oBits = (quint8 *) image.bits();
     const quint8 *yp, *up, *vp;
 
-    switch (videoFrame.pixelFormat())
-    {
+    switch (videoFrame.pixelFormat()) {
         case QXmppVideoFrame::Format_YUYV:
-            for (qint32 i = 0; i < 2 * width * height; i += 4)
-            {
+            for (qint32 i = 0; i < 2 * width * height; i += 4) {
                 quint8 y1 = iBits[i];
                 quint8 u  = iBits[i + 1];
                 quint8 y2 = iBits[i + 2];
@@ -222,8 +223,7 @@ QImage MainWindow::videoFrameToImage(const QXmppVideoFrame &videoFrame)
             up = yp + width * height;
             vp = up + width * height / 4;
 
-            for (qint32 i = 0; i < width * height; i++)
-            {
+            for (qint32 i = 0; i < width * height; i++) {
                 quint8 y = yp[i];
                 quint8 u = up[this->y2uv(i, width)];
                 quint8 v = vp[this->y2uv(i, width)];
@@ -296,8 +296,7 @@ void MainWindow::on_btnDisconnect_clicked()
 
 void MainWindow::on_btnEndCall_clicked()
 {
-    if (this->m_call)
-    {
+    if (this->m_call) {
         // Hangup call.
         this->m_call->hangup();
 
@@ -316,7 +315,7 @@ void MainWindow::on_btnEndCall_clicked()
                             this,
                             SLOT(stateChanged(QXmppCall::State)));
 
-z        QObject::disconnect(this->m_call,
+        QObject::disconnect(this->m_call,
                             SIGNAL(audioModeChanged(QIODevice::OpenMode)),
                             this,
                             SLOT(audioModeChanged(QIODevice::OpenMode)));
@@ -337,32 +336,40 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
 {
     QXmppRtpAudioChannel *channel = this->m_call->audioChannel();
 
-    if (mode & QIODevice::ReadOnly)
-    {
+    if (mode & QIODevice::ReadOnly) {
         QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultOutputDevice();
         QAudioFormat format = deviceInfo.preferredFormat();
         format.setSampleRate(channel->payloadType().clockrate());
         format.setChannelCount(channel->payloadType().channels());
         format = deviceInfo.nearestFormat(format);
 
-        // initialise audio output
-        QAudioOutput *audioOutput = new QAudioOutput(format, this);
+        if (this->m_audioOutput) {
+            this->m_audioOutput->stop();
+            delete this->m_audioOutput;
+            this->m_audioOutput = NULL;
+        }
 
-        audioOutput->start(channel);
+        // initialise audio output
+        this->m_audioOutput = new QAudioOutput(format, this);
+        this->m_audioOutput->start(channel);
     }
 
-    if (mode & QIODevice::WriteOnly)
-    {
+    if (mode & QIODevice::WriteOnly) {
         QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultInputDevice();
         QAudioFormat format = deviceInfo.preferredFormat();
         format.setSampleRate(channel->payloadType().clockrate());
         format.setChannelCount(channel->payloadType().channels());
         format = deviceInfo.nearestFormat(format);
 
-        // initialise audio input
-        QAudioInput *audioInput = new QAudioInput(format, this);
+        if (this->m_audioInput) {
+            this->m_audioInput->stop();
+            delete this->m_audioInput;
+            this->m_audioInput = NULL;
+        }
 
-        audioInput->start(channel);
+        // initialise audio input
+        this->m_audioInput = new QAudioInput(format, this);
+        this->m_audioInput->start(channel);
     }
 }
 
@@ -378,11 +385,26 @@ void MainWindow::callConnected()
 
 void MainWindow::callFinished()
 {
+    if (!this->m_call)
+        return;
+
     if (this->m_call->direction() == QXmppCall::OutgoingDirection)
         this->m_call->stopVideo();
 
     this->stackedWidget->setCurrentIndex(0);
     this->stbStatusBar->showMessage("");
+
+    if (this->m_audioInput) {
+        this->m_audioInput->stop();
+        delete this->m_audioInput;
+        this->m_audioInput = NULL;
+    }
+
+    if (this->m_audioOutput) {
+        this->m_audioOutput->stop();
+        delete this->m_audioOutput;
+        this->m_audioOutput = NULL;
+    }
 }
 
 void MainWindow::callReceived(QXmppCall *call)
@@ -391,9 +413,7 @@ void MainWindow::callReceived(QXmppCall *call)
                               "Accept Call?",
                               "Accept Call from " + call->jid() + "?",
                               QMessageBox::Ok | QMessageBox::Cancel,
-                              QMessageBox::Cancel) == QMessageBox::Ok)
-    {
-
+                              QMessageBox::Cancel) == QMessageBox::Ok) {
         this->m_call = call;
 
         QObject::connect(this->m_call,
@@ -460,13 +480,11 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
     QString jid = bareJid + "/" + resource;
 
     // Only show connected friends.
-    if (presence.availableStatusType() == QXmppPresence::Online)
-    {
+    if (presence.availableStatusType() == QXmppPresence::Online) {
         if (!this->m_roster.contains(jid))
             this->m_roster << jid;
     }
-    else
-    {
+    else {
         if (this->m_roster.contains(jid))
             this->m_roster.removeAll(jid);
     }
@@ -477,8 +495,7 @@ void MainWindow::presenceChanged(const QString &bareJid, const QString &resource
 
 void MainWindow::readFrames()
 {
-    foreach (QXmppVideoFrame frame, this->m_call->videoChannel()->readFrames())
-    {
+    foreach (QXmppVideoFrame frame, this->m_call->videoChannel()->readFrames()) {
         if (!frame.isValid())
             continue;
 
@@ -489,8 +506,7 @@ void MainWindow::readFrames()
 
 void MainWindow::stateChanged(QXmppCall::State state)
 {
-    switch (state)
-    {
+    switch (state) {
         case QXmppCall::ConnectingState:
             this->stbStatusBar->showMessage("Connecting Call");
         break;
@@ -515,8 +531,7 @@ void MainWindow::stateChanged(QXmppCall::State state)
 
 void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
 {
-    if (mode & QIODevice::ReadOnly)
-    {
+    if (mode & QIODevice::ReadOnly) {
         QXmppVideoFormat videoFormat;
 
         // Open the webcam.
@@ -567,8 +582,7 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
         // Change default Encoder Format.
         this->m_call->videoChannel()->setEncoderFormat(videoFormat);
 
-        if (!this->m_timer.isActive())
-        {
+        if (!this->m_timer.isActive()) {
             QObject::connect(&this->m_timer,
                              SIGNAL(timeout()),
                              this,
@@ -582,8 +596,7 @@ void MainWindow::videoModeChanged(QIODevice::OpenMode mode)
             this->m_timer.start();
         }
     }
-    else if (mode == QIODevice::NotOpen)
-    {
+    else if (mode == QIODevice::NotOpen) {
         this->m_webcam.release();
 
         QObject::disconnect(&this->m_timer,

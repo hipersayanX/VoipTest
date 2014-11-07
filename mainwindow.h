@@ -23,8 +23,9 @@
 #define MAINWINDOW_H
 
 #include <QTimer>
-#include <QProcess>
 #include <QMainWindow>
+#include <QAudioInput>
+#include <QAudioOutput>
 #include <QXmppClient.h>
 #include <QXmppRosterManager.h>
 #include <QXmppCallManager.h>
@@ -38,7 +39,8 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
     Q_OBJECT
 
     public:
-        explicit MainWindow(QWidget *parent = 0);
+        explicit MainWindow(QWidget *parent = NULL);
+        ~MainWindow();
 
     protected:
         void changeEvent(QEvent *e);
@@ -50,6 +52,8 @@ class MainWindow: public QMainWindow, public Ui::MainWindow
         QXmppCallManager m_callManager;
         QTimer m_timer;
         cv::VideoCapture m_webcam;
+        QAudioOutput *m_audioOutput;
+        QAudioInput *m_audioInput;
 
         // Methods for converting between RGB <=> YUV.
         quint8 clamp(qint32 value);
