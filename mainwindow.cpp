@@ -339,6 +339,8 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
     if (mode & QIODevice::ReadOnly) {
         QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultOutputDevice();
         QAudioFormat format = deviceInfo.preferredFormat();
+        format.setSampleSize(16);
+        format.setSampleType(QAudioFormat::SignedInt);
         format.setSampleRate(channel->payloadType().clockrate());
         format.setChannelCount(channel->payloadType().channels());
         format = deviceInfo.nearestFormat(format);
@@ -357,6 +359,8 @@ void MainWindow::audioModeChanged(QIODevice::OpenMode mode)
     if (mode & QIODevice::WriteOnly) {
         QAudioDeviceInfo deviceInfo = QAudioDeviceInfo::defaultInputDevice();
         QAudioFormat format = deviceInfo.preferredFormat();
+        format.setSampleSize(16);
+        format.setSampleType(QAudioFormat::SignedInt);
         format.setSampleRate(channel->payloadType().clockrate());
         format.setChannelCount(channel->payloadType().channels());
         format = deviceInfo.nearestFormat(format);
